@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>すうじバトル</title>
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="カードゲーム">
+<meta property="og:description" content="友達と対戦できるシンプルなカードゲーム">
+<meta property="og:image" content="https://toku031903-sys.github.io/card-battle/IMG_1619.jpeg">
+<meta property="og:url" content="https://toku031903-sys.github.io/card-battle/">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="カードゲーム">
+<meta name="twitter:description" content="友達と対戦できるシンプルなカードゲーム">
+<meta name="twitter:image" content="https://toku031903-sys.github.io/card-battle/IMG_1619.jpeg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-top:#EAF4FF;
+    --bg-bottom:#F3EEFF;
+    --ink:#33394A;
+    --ink-soft:#7C82A0;
+    --white:#FFFFFF;
+    --accent:#5B8DEF;
+    --accent-soft:#EAF0FF;
+    --warn:#FF8A65;
+    --good:#4ADE80;
+    --line:#E7EAF5;
+    --shadow: 0 10px 30px -12px rgba(80,90,150,0.25);
+    --c1a:#60A5FA; --c1b:#38BDF8;
+    --c2a:#38BDF8; --c2b:#2DD4BF;
+    --c3a:#2DD4BF; --c3b:#4ADE80;
+    --c4a:#A3E635; --c4b:#FDE047;
+    --c5a:#FDE047; --c5b:#FB923C;
+    --c6a:#FB923C; --c6b:#F87171;
+    --c7a:#F87171; --c7b:#EC4899;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:linear-gradient(180deg,var(--bg-top) 0%, var(--bg-bottom) 100%);
+    color:var(--ink);
+    font-family:'Zen Maru Gothic', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior:none;
+  }
+  .num-font{ font-family:'Fredoka', sans-serif; }
+  #app{
+    max-width:480px; margin:0 auto; min-height:100vh;
+    display:flex; flex-direction:column;
+    padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+    position:relative;
+  }
+  .screen{ display:none; flex-direction:column; flex:1; animation:fadeIn .35s ease; }
+  .screen.active{ display:flex; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- Home ---------- */
+  .brand{ text-align:center; margin-top:6vh; margin-bottom:8px; }
+  .brand-icon{ font-size:44px; line-height:1; margin-bottom:6px; }
+  .brand h1{
+    font-size:30px; margin:0; letter-spacing:.02em; font-weight:900;
+    background:linear-gradient(120deg,var(--c1b),var(--c4a) 40%, var(--c7b));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .brand p{ color:var(--ink-soft); font-size:13.5px; margin:8px 0 0; }
+
+  .card-panel{
+    background:var(--white); border-radius:22px; padding:20px;
+    box-shadow:var(--shadow); margin-top:22px;
+  }
+  label{ font-size:12.5px; color:var(--ink-soft); font-weight:700; display:block; margin-bottom:6px; }
+  input[type=text]{
+    width:100%; border:2px solid var(--line); border-radius:14px; padding:13px 14px;
+    font-size:16px; font-family:'Zen Maru Gothic',sans-serif; color:var(--ink);
+    background:#FAFBFF; outline:none; transition:border-color .15s;
+  }
+  input[type=text]:focus{ border-color:var(--accent); }
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    border:none; border-radius:16px; padding:15px; font-size:16px; font-weight:700;
+    font-family:'Zen Maru Gothic',sans-serif; cursor:pointer; width:100%;
+    transition:transform .12s ease, box-shadow .12s ease; -webkit-user-select:none; user-select:none;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{ background:linear-gradient(120deg,var(--c2a),var(--c3b)); color:#fff; box-shadow:0 8px 20px -6px rgba(56,189,208,.5); margin-top:14px; }
+  .btn-secondary{ background:var(--accent-soft); color:var(--accent); margin-top:10px; }
+  .btn-ghost{ background:transparent; color:var(--ink-soft); font-weight:600; font-size:14px; padding:10px; }
+  .divider{ display:flex; align-items:center; gap:10px; margin:18px 0; color:var(--ink-soft); font-size:12px; }
+  .divider::before,.divider::after{ content:''; flex:1; height:1px; background:var(--line); }
+  .hint{ font-size:12px; color:var(--ink-soft); margin-top:8px; line-height:1.6; }
+  .error-msg{ color:#F04868; font-size:13px; font-weight:700; margin-top:8px; min-height:0; }
+
+  /* ---------- Waiting ---------- */
+  .waiting-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; text-align:center; }
+  .room-code{
+    font-family:'Fredoka',sans-serif; font-size:44px; font-weight:700; letter-spacing:.12em;
+    background:var(--white); border-radius:20px; padding:18px 26px; box-shadow:var(--shadow);
+    background-image:linear-gradient(120deg,var(--c2a),var(--c6b));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    margin:18px 0 6px;
+  }
+  .spinner{
+    width:26px; height:26px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--accent);
+    animation:spin 0.9s linear infinite; margin:22px auto 8px;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .share-row{ display:flex; gap:8px; width:100%; margin-top:18px; }
+  .share-row .btn{ margin-top:0; }
+
+  /* ---------- Game screen ---------- */
+  .topbar{ display:flex; justify-content:space-between; align-items:center; padding:4px 2px 10px; }
+  .turn-pill{
+    font-size:12.5px; font-weight:700; color:var(--ink-soft); background:var(--white);
+    padding:6px 14px; border-radius:999px; box-shadow:var(--shadow);
+  }
+  .tie-badge{
+    font-size:11.5px; font-weight:700; color:#fff; background:linear-gradient(120deg,#FFB84D,#FF8A65);
+    padding:5px 11px; border-radius:999px; opacity:0; transform:scale(.8); transition:all .25s ease;
+  }
+  .tie-badge.show{ opacity:1; transform:scale(1); }
+
+  .score-row{ display:flex; gap:10px; margin-bottom:14px; }
+  .score-card{ flex:1; background:var(--white); border-radius:16px; padding:12px 14px; box-shadow:var(--shadow); position:relative; }
+  .score-card.me{ border:2px solid var(--c3b); }
+  .score-card.opp{ border:2px solid var(--c7a); }
+  .score-name{ font-size:11.5px; color:var(--ink-soft); font-weight:700; }
+  .score-pt{ font-family:'Fredoka',sans-serif; font-size:26px; font-weight:700; margin-top:2px; }
+  .streak-note{ font-size:10.5px; color:var(--warn); font-weight:700; margin-top:2px; height:12px; }
+
+  .arena{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; padding:6px 0 10px; min-height:180px;
+  }
+  .vs-row{ display:flex; align-items:center; justify-content:center; gap:16px; }
+  .slot-label{ font-size:11px; color:var(--ink-soft); text-align:center; margin-bottom:6px; font-weight:700;}
+  .slot{ display:flex; flex-direction:column; align-items:center; }
+  .vs-text{ font-family:'Fredoka',sans-serif; font-weight:700; color:var(--ink-soft); font-size:15px; }
+
+  .pcard{
+    width:74px; height:100px; border-radius:16px; display:flex; align-items:center; justify-content:center;
+    font-family:'Fredoka',sans-serif; font-size:38px; font-weight:600; color:#fff;
+    box-shadow:0 10px 18px -8px rgba(60,60,100,.35);
+    position:relative; transition:transform .5s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .pcard.back{ background:linear-gradient(135deg,#C9D4F5,#E4E9FB); }
+  .pcard.back::after{ content:'?'; color:#AEB8DE; font-size:30px; }
+  .pcard .star{ position:absolute; top:6px; right:8px; font-size:12px; }
+  .pcard.flip-in{ animation:flipIn .55s ease; }
+  @keyframes flipIn{ 0%{ transform:rotateY(90deg) scale(.9); opacity:.3;} 100%{ transform:rotateY(0) scale(1); opacity:1; } }
+  .pcard.result-win{ box-shadow:0 0 0 3px var(--good), 0 10px 18px -8px rgba(60,60,100,.35); }
+  .pcard.result-lose{ filter:saturate(.55) brightness(.96); }
+
+  .result-banner{
+    text-align:center; font-weight:900; font-size:17px; padding:10px 20px; border-radius:14px;
+    background:var(--white); box-shadow:var(--shadow); min-height:20px; opacity:0; transform:translateY(6px);
+    transition:all .3s ease;
+  }
+  .result-banner.show{ opacity:1; transform:translateY(0); }
+  .result-banner .pts{ font-family:'Fredoka',sans-serif; font-size:15px; margin-left:6px; }
+  .result-win-text{ color:#22A76D; }
+  .result-lose-text{ color:#E85A6E; }
+  .result-tie-text{ color:#E8A23A; }
+  .result-special{ font-size:11px; font-weight:700; color:var(--accent); display:block; margin-top:2px; }
+
+  .waiting-note{ text-align:center; font-size:12.5px; color:var(--ink-soft); min-height:18px; font-weight:700; }
+
+  .hand-wrap{ margin-top:auto; padding-top:8px; }
+  .hand-title{ font-size:12px; color:var(--ink-soft); font-weight:700; margin-bottom:8px; padding-left:2px; }
+  .hand-row{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .hcard{
+    width:44px; height:60px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-family:'Fredoka',sans-serif; font-weight:600; font-size:22px; color:#fff; cursor:pointer;
+    box-shadow:0 6px 12px -6px rgba(60,60,100,.35); border:3px solid transparent; position:relative;
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  .hcard.used{ opacity:.18; pointer-events:none; filter:grayscale(1); }
+  .hcard.selected{ border-color:var(--ink); transform:translateY(-8px) scale(1.05); }
+  .hcard .star{ position:absolute; top:2px; right:4px; font-size:9px; }
+  .confirm-wrap{ height:56px; margin-top:12px; display:flex; align-items:center; justify-content:center; }
+  .confirm-wrap .btn{ margin-top:0; max-width:260px; }
+
+  .n1{ background:linear-gradient(135deg,var(--c1a),var(--c1b)); }
+  .n2{ background:linear-gradient(135deg,var(--c2a),var(--c2b)); }
+  .n3{ background:linear-gradient(135deg,var(--c3a),var(--c3b)); }
+  .n4{ background:linear-gradient(135deg,var(--c4a),var(--c4b)); color:#6B5A00; }
+  .n5{ background:linear-gradient(135deg,var(--c5a),var(--c5b)); }
+  .n6{ background:linear-gradient(135deg,var(--c6a),var(--c6b)); }
+  .n7{ background:linear-gradient(135deg,var(--c7a),var(--c7b)); }
+
+  /* ---------- Result screen ---------- */
+  .final-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .final-crown{ font-size:52px; margin-bottom:6px; }
+  .final-title{ font-size:24px; font-weight:900; margin:0 0 4px; }
+  .final-sub{ color:var(--ink-soft); font-size:13px; margin-bottom:22px; }
+  .final-scores{ display:flex; gap:14px; margin-bottom:26px; }
+  .final-score-card{ background:var(--white); border-radius:18px; padding:18px 22px; box-shadow:var(--shadow); min-width:110px; }
+  .final-score-card .val{ font-family:'Fredoka',sans-serif; font-size:32px; font-weight:700; }
+  .final-actions{ width:100%; max-width:280px; }
+
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:#fff; padding:10px 18px; border-radius:12px; font-size:13px;
+    font-weight:700; opacity:0; pointer-events:none; transition:all .25s ease; z-index:50;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="brand">
+      <h1>すうじバトル</h1>
+    </div>
+    <div class="card-panel">
+      <label for="nameInput">なまえ</label>
+      <input type="text" id="nameInput" placeholder="れい：たろう" maxlength="10">
+      <button class="btn btn-primary" id="btnCreate">ルームをつくる</button>
+      <div class="divider">または</div>
+      <label for="codeInput">ルームコード</label>
+      <input type="text" id="codeInput" placeholder="4桁のコードを入力" maxlength="4" inputmode="numeric">
+      <button class="btn btn-secondary" id="btnJoin">ルームに参加する</button>
+      <div class="error-msg" id="homeError"></div>
+    </div>
+  </div>
+
+  <!-- WAITING -->
+  <div class="screen" id="screen-waiting">
+    <div class="waiting-wrap">
+      <p style="color:var(--ink-soft);font-weight:700;font-size:13px;">ルームコード</p>
+      <div class="room-code num-font" id="waitRoomCode">----</div>
+      <p style="font-size:12.5px;color:var(--ink-soft);">このコードを友だちに伝えてね</p>
+      <div class="share-row">
+        <button class="btn btn-secondary" id="btnCopyLink">リンクをコピー</button>
+      </div>
+      <div id="waitStatus">
+        <div class="spinner"></div>
+        <p style="font-weight:700;">相手を待っています…</p>
+      </div>
+      <button class="btn btn-ghost" id="btnCancelWait">やめる</button>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div class="screen" id="screen-game">
+    <div class="topbar">
+      <div class="turn-pill" id="turnPill">ターン 1 / 7</div>
+      <div class="tie-badge" id="tieBadge">あいこ継続 +1</div>
+    </div>
+    <div class="score-row">
+      <div class="score-card me">
+        <div class="score-name" id="myNameLabel">あなた</div>
+        <div class="score-pt num-font" id="myScore">0</div>
+        <div class="streak-note" id="myStreakNote"></div>
+      </div>
+      <div class="score-card opp">
+        <div class="score-name" id="oppNameLabel">相手</div>
+        <div class="score-pt num-font" id="oppScore">0</div>
+        <div class="streak-note" id="oppStreakNote"></div>
+      </div>
+    </div>
+
+    <div class="arena">
+      <div class="vs-row">
+        <div class="slot">
+          <div class="slot-label" id="myArenaLabel">あなた</div>
+          <div class="pcard back num-font" id="myPcard"></div>
+        </div>
+        <div class="vs-text">VS</div>
+        <div class="slot">
+          <div class="slot-label" id="oppArenaLabel">相手</div>
+          <div class="pcard back num-font" id="oppPcard"></div>
+        </div>
+      </div>
+      <div class="result-banner" id="resultBanner"></div>
+      <div class="waiting-note" id="waitingNote"></div>
+    </div>
+
+    <div class="hand-wrap">
+      <div class="hand-title">手札から1枚えらんでね</div>
+      <div class="hand-row num-font" id="handRow"></div>
+      <div class="confirm-wrap" id="confirmWrap"></div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="screen-result">
+    <div class="final-wrap">
+      <div class="final-crown" id="finalCrown">🎉</div>
+      <div class="final-title" id="finalTitle">あなたの勝ち！</div>
+      <div class="final-sub" id="finalSub">7ターン、おつかれさま</div>
+      <div class="final-scores">
+        <div class="final-score-card">
+          <div class="score-name" id="finalMyName">あなた</div>
+          <div class="val num-font" id="finalMyScore">0</div>
+        </div>
+        <div class="final-score-card">
+          <div class="score-name" id="finalOppName">相手</div>
+          <div class="val num-font" id="finalOppScore">0</div>
+        </div>
+      </div>
+      <div class="final-actions">
+        <button class="btn btn-primary" id="btnRematch">もういちど遊ぶ</button>
+        <button class="btn btn-ghost" id="btnHome">ホームに戻る</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script>
+/* ---------------- Firebase setup ---------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyC8598WYSNoDqDF7z7W5Wi7aNTO1e77zwA",
+  authDomain: "blackjack-746a3.firebaseapp.com",
+  databaseURL: "https://blackjack-746a3-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "blackjack-746a3",
+  storageBucket: "blackjack-746a3.firebasestorage.app",
+  messagingSenderId: "798294757799",
+  appId: "1:798294757799:web:a227cfe4b674f359f4e682",
+  measurementId: "G-ZSJT9K7NGM"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* ---------------- State ---------------- */
+let myRole = null;        // 'A' or 'B'
+let roomCode = null;
+let myName = 'あなた';
+let roomRef = null;
+let currentRoom = null;
+let selectedCard = null;
+let lastLogLen = 0;
+let roomListener = null;
+
+const els = {};
+['screen-home','screen-waiting','screen-game','screen-result'].forEach(id=>{
+  els[id]=document.getElementById(id);
+});
+function showScreen(id){
+  Object.values(els).forEach(s=>s.classList.remove('active'));
+  els[id].classList.add('active');
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._tm);
+  toast._tm=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ---------------- Home screen ---------------- */
+const nameInput = document.getElementById('nameInput');
+const codeInput = document.getElementById('codeInput');
+const homeError = document.getElementById('homeError');
+
+nameInput.value = localStorage.getItem('sb_name') || '';
+
+document.getElementById('btnCreate').addEventListener('click', async ()=>{
+  homeError.textContent='';
+  myName = (nameInput.value||'').trim() || 'あなた';
+  localStorage.setItem('sb_name', myName);
+  document.getElementById('btnCreate').disabled = true;
+  try{
+    const code = await createRoom(myName);
+    myRole = 'A'; roomCode = code;
+    localStorage.setItem('sb_session', JSON.stringify({roomCode, role:'A', name:myName}));
+    enterWaiting();
+  }catch(e){
+    console.error(e);
+    homeError.textContent='ルーム作成に失敗しました。通信環境をご確認ください。';
+  }
+  document.getElementById('btnCreate').disabled = false;
+});
+
+document.getElementById('btnJoin').addEventListener('click', async ()=>{
+  homeError.textContent='';
+  myName = (nameInput.value||'').trim() || 'あなた';
+  localStorage.setItem('sb_name', myName);
+  const code = (codeInput.value||'').trim();
+  if(!/^\d{4}$/.test(code)){
+    homeError.textContent='4桁のルームコードを入力してください。';
+    return;
+  }
+  try{
+    const ok = await joinRoom(code, myName);
+    if(!ok){
+      homeError.textContent='そのルームは見つからないか、すでに満員です。';
+      return;
+    }
+    myRole='B'; roomCode=code;
+    localStorage.setItem('sb_session', JSON.stringify({roomCode, role:'B', name:myName}));
+    attachRoomListener();
+  }catch(e){
+    console.error(e);
+    homeError.textContent='参加に失敗しました。通信環境をご確認ください。';
+  }
+});
+
+// URLの ?room=CODE を拾ってコード欄に自動入力
+(function prefillFromUrl(){
+  const params = new URLSearchParams(location.search);
+  const r = params.get('room');
+  if(r && /^\d{4}$/.test(r)) codeInput.value = r;
+})();
+
+/* ---------------- Room creation / join ---------------- */
+function randCode(){
+  return String(Math.floor(1000 + Math.random()*9000));
+}
+const FULL_HAND = [1,2,3,4,5,6,7];
+
+async function createRoom(name){
+  for(let attempt=0; attempt<6; attempt++){
+    const code = randCode();
+    const ref = db.ref('rooms/'+code);
+    const snap = await ref.once('value');
+    if(snap.exists()) continue;
+    await ref.set({
+      createdAt: firebase.database.ServerValue.TIMESTAMP,
+      status: 'waiting',
+      players: { A: { name: name, joined: true } },
+      turnIndex: 1,
+      currentTurn: {},
+      usedCards: { A: [], B: [] },
+      scores: { A: 0, B: 0 },
+      streak: { A: 0, B: 0 },
+      tieCarry: 0,
+      log: {}
+    });
+    return code;
+  }
+  throw new Error('code-gen-failed');
+}
+
+async function joinRoom(code, name){
+  const ref = db.ref('rooms/'+code);
+  const result = await ref.transaction(room=>{
+    if(room === null) return; // ルームなし → abort
+    if(room.players && room.players.B) return; // 満員 → abort
+    if(!room.players) room.players = {};
+    room.players.B = { name: name, joined: true };
+    room.status = 'playing';
+    return room;
+  });
+  if(!result.committed) return false;
+  return true;
+}
+
+/* ---------------- Waiting screen ---------------- */
+function enterWaiting(){
+  document.getElementById('waitRoomCode').textContent = roomCode;
+  showScreen('screen-waiting');
+  attachRoomListener();
+}
+document.getElementById('btnCopyLink').addEventListener('click', ()=>{
+  const url = location.origin + location.pathname + '?room=' + roomCode;
+  navigator.clipboard?.writeText(url).then(()=>{
+    toast('リンクをコピーしました');
+  }).catch(()=>{
+    toast('コピーできませんでした: '+url);
+  });
+});
+document.getElementById('btnCancelWait').addEventListener('click', ()=>{
+  detachRoomListener();
+  if(roomCode && myRole==='A'){ db.ref('rooms/'+roomCode).remove().catch(()=>{}); }
+  localStorage.removeItem('sb_session');
+  roomCode=null; myRole=null;
+  showScreen('screen-home');
+});
+
+/* ---------------- Room listener & routing ---------------- */
+function attachRoomListener(){
+  detachRoomListener();
+  roomRef = db.ref('rooms/'+roomCode);
+  roomListener = roomRef.on('value', snap=>{
+    const room = snap.val();
+    if(!room){
+      toast('ルームが見つかりません');
+      showScreen('screen-home');
+      return;
+    }
+    currentRoom = room;
+    render();
+  });
+}
+function detachRoomListener(){
+  if(roomRef && roomListener) roomRef.off('value', roomListener);
+  roomRef=null; roomListener=null;
+}
+
+/* ---------------- Turn resolution logic (runs inside transaction) ---------------- */
+function resolveTurnIfReady(room){
+  const other = myRole==='A' ? 'B':'A';
+  const ct = room.currentTurn || {};
+  if(ct.A === undefined || ct.A === null) return;
+  if(ct.B === undefined || ct.B === null) return;
+  // 両者提出済み → 判定
+  const a = ct.A, b = ct.B;
+  const turnNum = room.turnIndex;
+  let winner = null, points = 0, special = null;
+
+  if(a===b){
+    // あいこ
+    room.tieCarry = (room.tieCarry||0) + 1;
+    room.streak.A = 0; room.streak.B = 0;
+  } else if((a===1 && b===7) || (a===7 && b===1)){
+    winner = (a===1) ? 'A' : 'B';
+    special = '1が7を打ち破った！';
+    room.streak[winner] = (room.streak[winner]||0) + 1;
+    const bonus = room.streak[winner] - 1;
+    points = 1 + bonus + (room.tieCarry||0);
+    room.streak[winner==='A'?'B':'A'] = 0;
+    room.scores[winner] = (room.scores[winner]||0) + points;
+    room.tieCarry = 0;
+  } else {
+    winner = a>b ? 'A' : 'B';
+    const winnerCard = a>b ? a : b;
+    const loserCard = a>b ? b : a;
+    let base = 1;
+    if(winnerCard===7 && loserCard===6){ base = 2; special = '7が6を撃破！2倍ポイント'; }
+    room.streak[winner] = (room.streak[winner]||0) + 1;
+    const bonus = room.streak[winner] - 1;
+    points = base + bonus + (room.tieCarry||0);
+    room.streak[winner==='A'?'B':'A'] = 0;
+    room.scores[winner] = (room.scores[winner]||0) + points;
+    room.tieCarry = 0;
+  }
+
+  room.log = room.log || {};
+  room.log['t'+turnNum] = { turn: turnNum, a, b, winner, points, special };
+  room.currentTurn = {};
+  room.turnIndex = turnNum + 1;
+  if(room.turnIndex > 7){
+    room.status = 'finished';
+  }
+}
+
+function submitCard(value){
+  if(!roomCode || !myRole) return;
+  const ref = db.ref('rooms/'+roomCode);
+  ref.transaction(room=>{
+    if(!room) return room;
+    if(room.status !== 'playing') return room;
+    room.currentTurn = room.currentTurn || {};
+    if(room.currentTurn[myRole] !== undefined && room.currentTurn[myRole] !== null) return room;
+    room.usedCards = room.usedCards || {A:[],B:[]};
+    room.usedCards[myRole] = room.usedCards[myRole] || [];
+    if(room.usedCards[myRole].includes(value)) return room;
+    room.currentTurn[myRole] = value;
+    room.usedCards[myRole].push(value);
+    resolveTurnIfReady(room);
+    return room;
+  }).catch(e=>console.error(e));
+}
+
+/* ---------------- Rematch ---------------- */
+document.getElementById('btnRematch').addEventListener('click', async ()=>{
+  if(!roomCode) return;
+  const ref = db.ref('rooms/'+roomCode);
+  await ref.transaction(room=>{
+    if(!room) return room;
+    room.status = (room.players && room.players.B) ? 'playing' : 'waiting';
+    room.turnIndex = 1;
+    room.currentTurn = {};
+    room.usedCards = { A: [], B: [] };
+    room.scores = { A: 0, B: 0 };
+    room.streak = { A: 0, B: 0 };
+    room.tieCarry = 0;
+    room.log = {};
+    return room;
+  });
+  lastLogLen = 0;
+  selectedCard = null;
+});
+document.getElementById('btnHome').addEventListener('click', ()=>{
+  detachRoomListener();
+  localStorage.removeItem('sb_session');
+  roomCode=null; myRole=null; currentRoom=null; lastLogLen=0;
+  showScreen('screen-home');
+});
+
+/* ---------------- Rendering ---------------- */
+function render(){
+  const room = currentRoom;
+  if(!room) return;
+
+  if(room.status === 'waiting'){
+    document.getElementById('waitRoomCode').textContent = roomCode;
+    showScreen('screen-waiting');
+    return;
+  }
+  if(room.status === 'finished'){
+    renderFinal(room);
+    showScreen('screen-result');
+    return;
+  }
+  if(room.status === 'playing'){
+    renderGame(room);
+    showScreen('screen-game');
+  }
+}
+
+function opp(){ return myRole==='A' ? 'B' : 'A'; }
+
+function renderGame(room){
+  const meName = (room.players && room.players[myRole] && room.players[myRole].name) || 'あなた';
+  const oppName = (room.players && room.players[opp()] && room.players[opp()].name) || '相手';
+  document.getElementById('myNameLabel').textContent = meName;
+  document.getElementById('oppNameLabel').textContent = oppName;
+  document.getElementById('myArenaLabel').textContent = meName;
+  document.getElementById('oppArenaLabel').textContent = oppName;
+  document.getElementById('finalMyName').textContent = meName;
+  document.getElementById('finalOppName').textContent = oppName;
+
+  document.getElementById('myScore').textContent = room.scores[myRole]||0;
+  document.getElementById('oppScore').textContent = room.scores[opp()]||0;
+
+  const myStreak = room.streak[myRole]||0;
+  const oppStreak = room.streak[opp()]||0;
+  document.getElementById('myStreakNote').textContent = myStreak>=2 ? `🔥${myStreak}連勝中` : '';
+  document.getElementById('oppStreakNote').textContent = oppStreak>=2 ? `🔥${oppStreak}連勝中` : '';
+
+  const tieBadge = document.getElementById('tieBadge');
+  if((room.tieCarry||0) > 0){
+    tieBadge.textContent = `あいこ継続 +${room.tieCarry}`;
+    tieBadge.classList.add('show');
+  } else {
+    tieBadge.classList.remove('show');
+  }
+
+  const turnNum = Math.min(room.turnIndex, 7);
+  document.getElementById('turnPill').textContent = `ターン ${turnNum} / 7`;
+
+  // 新しいログが出た → 演出
+  const logEntries = room.log ? Object.values(room.log).sort((a,b)=>a.turn-b.turn) : [];
+  if(logEntries.length > lastLogLen){
+    const last = logEntries[logEntries.length-1];
+    lastLogLen = logEntries.length;
+    playReveal(last);
+    selectedCard = null;
+    renderHand(room); // 手札更新(消費済みを反映)
+    renderConfirm(room);
+    return; // reveal演出中はhand表示をreveal後に任せる
+  }
+
+  const ct = room.currentTurn || {};
+  const iSubmitted = ct[myRole] !== undefined && ct[myRole] !== null;
+  const oppSubmitted = ct[opp()] !== undefined && ct[opp()] !== null;
+
+  const myCardEl = document.getElementById('myPcard');
+  const oppCardEl = document.getElementById('oppPcard');
+  setCardBack(myCardEl);
+  setCardBack(oppCardEl);
+  document.getElementById('resultBanner').classList.remove('show');
+  document.getElementById('resultBanner').innerHTML = '';
+
+  const waitingNote = document.getElementById('waitingNote');
+  if(iSubmitted && !oppSubmitted){
+    waitingNote.textContent = `${oppName}の選択を待っています…`;
+  } else if(!iSubmitted){
+    waitingNote.textContent = '';
+  } else {
+    waitingNote.textContent = '';
+  }
+
+  renderHand(room, iSubmitted);
+  renderConfirm(room, iSubmitted);
+}
+
+function setCardBack(el){
+  el.className = 'pcard back num-font';
+  el.textContent = '';
+}
+function cardClass(v){ return 'n'+v; }
+function isSpecialCard(v){ return v===1 || v===7; }
+
+function renderHand(room, submittedOverride){
+  const used = (room.usedCards && room.usedCards[myRole]) || [];
+  const ct = room.currentTurn || {};
+  const iSubmitted = submittedOverride!==undefined ? submittedOverride : (ct[myRole]!==undefined && ct[myRole]!==null);
+  const row = document.getElementById('handRow');
+  row.innerHTML = '';
+  FULL_HAND.forEach(v=>{
+    const isUsed = used.includes(v);
+    const div = document.createElement('div');
+    div.className = 'hcard ' + cardClass(v) + (isUsed?' used':'') + (selectedCard===v?' selected':'');
+    div.textContent = v;
+    if(isSpecialCard(v)){
+      const star = document.createElement('span');
+      star.className='star'; star.textContent='★';
+      div.appendChild(star);
+    }
+    if(!isUsed && !iSubmitted){
+      div.addEventListener('click', ()=>{
+        selectedCard = (selectedCard===v) ? null : v;
+        renderHand(room, iSubmitted);
+        renderConfirm(room, iSubmitted);
+      });
+    }
+    row.appendChild(div);
+  });
+}
+
+function renderConfirm(room, submittedOverride){
+  const ct = room.currentTurn || {};
+  const iSubmitted = submittedOverride!==undefined ? submittedOverride : (ct[myRole]!==undefined && ct[myRole]!==null);
+  const wrap = document.getElementById('confirmWrap');
+  wrap.innerHTML = '';
+  if(iSubmitted || selectedCard===null) return;
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary';
+  btn.textContent = `${selectedCard} を出す`;
+  btn.addEventListener('click', ()=>{
+    submitCard(selectedCard);
+  });
+  wrap.appendChild(btn);
+}
+
+function playReveal(entry){
+  const myVal = entry[myRole.toLowerCase()];
+  const oppVal = entry[opp().toLowerCase()];
+  const myCardEl = document.getElementById('myPcard');
+  const oppCardEl = document.getElementById('oppPcard');
+
+  myCardEl.className = 'pcard num-font ' + cardClass(myVal) + ' flip-in';
+  myCardEl.textContent = myVal;
+  oppCardEl.className = 'pcard num-font ' + cardClass(oppVal) + ' flip-in';
+  oppCardEl.textContent = oppVal;
+  if(isSpecialCard(myVal)){ const s=document.createElement('span'); s.className='star'; s.textContent='★'; myCardEl.appendChild(s); }
+  if(isSpecialCard(oppVal)){ const s=document.createElement('span'); s.className='star'; s.textContent='★'; oppCardEl.appendChild(s); }
+
+  const banner = document.getElementById('resultBanner');
+  let text, cls, pts='';
+  if(entry.winner === null){
+    text = 'あいこ！'; cls='result-tie-text';
+    myCardEl.classList.remove('result-win','result-lose');
+    oppCardEl.classList.remove('result-win','result-lose');
+  } else if(entry.winner === myRole){
+    text = 'あなたの勝ち！'; cls='result-win-text'; pts = `+${entry.points}pt`;
+    myCardEl.classList.add('result-win');
+    oppCardEl.classList.add('result-lose');
+  } else {
+    text = 'あなたの負け…'; cls='result-lose-text';
+    myCardEl.classList.add('result-lose');
+    oppCardEl.classList.add('result-win');
+  }
+  banner.innerHTML = `<span class="${cls}">${text}</span>` +
+    (pts?`<span class="pts ${cls} num-font">${pts}</span>`:'') +
+    (entry.special?`<span class="result-special">${entry.special}</span>`:'');
+  document.getElementById('waitingNote').textContent='';
+  requestAnimationFrame(()=>banner.classList.add('show'));
+
+  clearTimeout(playReveal._tm);
+  playReveal._tm = setTimeout(()=>{
+    banner.classList.remove('show');
+    setCardBack(myCardEl);
+    setCardBack(oppCardEl);
+    render();
+  }, 2600);
+}
+
+function renderFinal(room){
+  const meName = (room.players && room.players[myRole] && room.players[myRole].name) || 'あなた';
+  const oppName = (room.players && room.players[opp()] && room.players[opp()].name) || '相手';
+  const myS = room.scores[myRole]||0;
+  const oppS = room.scores[opp()]||0;
+  document.getElementById('finalMyName').textContent = meName;
+  document.getElementById('finalOppName').textContent = oppName;
+  document.getElementById('finalMyScore').textContent = myS;
+  document.getElementById('finalOppScore').textContent = oppS;
+
+  const crown = document.getElementById('finalCrown');
+  const title = document.getElementById('finalTitle');
+  const sub = document.getElementById('finalSub');
+  if(myS===oppS){
+    crown.textContent='🤝'; title.textContent='引き分け！'; sub.textContent='いい勝負でした';
+  } else if(myS>oppS){
+    crown.textContent='🎉'; title.textContent=`${meName}の勝ち！`; sub.textContent='7ターン、おつかれさま';
+  } else {
+    crown.textContent='😢'; title.textContent=`${oppName}の勝ち！`; sub.textContent='次はきっと勝てる';
+  }
+}
+
+/* ---------------- Reconnect on load ---------------- */
+(function tryResume(){
+  try{
+    const s = JSON.parse(localStorage.getItem('sb_session')||'null');
+    if(s && s.roomCode && s.role){
+      roomCode = s.roomCode; myRole = s.role; myName = s.name || 'あなた';
+      nameInput.value = myName;
+      attachRoomListener();
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
